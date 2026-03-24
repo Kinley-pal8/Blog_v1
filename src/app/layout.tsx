@@ -21,7 +21,7 @@ export default function RootLayout({
         <body className="transition-colors duration-300">
           <ThemeProvider>
             <Sidebar />
-            <main className="pt-16 md:pt-18 lg:pt-20 min-h-screen">
+            <main className="pt-16 md:pt-18 lg:pt-0 lg:ml-48 min-h-screen">
               {children}
             </main>
           </ThemeProvider>

@@ -6,7 +6,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-inherit transition-colors duration-300">
       {/* Hero Section - Two Column */}
-      <section className="flex items-center py-6 md:py-12 lg:py-20 px-4 md:px-6 lg:px-12 mt-6 md:mt-8 lg:mt-12">
+      <section className="flex items-center py-6 md:py-12 lg:py-20 px-4 md:px-6 lg:px-12 mt-4 md:mt-6 lg:mt-0">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 lg:gap-16 w-full max-w-6xl mx-auto">
           {/* Left Column - Hero Text */}
           <div className="flex flex-col justify-center">
