@@ -1,0 +1,930 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NoSQL Databases — Unit I Deep Dive</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #111118;
+    --surface2: #1a1a24;
+    --accent: #6ee7b7;
+    --accent2: #a78bfa;
+    --accent3: #f59e0b;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --border: rgba(255,255,255,0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-weight: 300;
+    line-height: 1.75;
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+
+  /* NOISE OVERLAY */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 999;
+    opacity: 0.4;
+  }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 4rem 2rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::after {
+    content: '';
+    position: absolute;
+    top: -200px; right: -200px;
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, rgba(110,231,183,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    bottom: -100px; left: -100px;
+    width: 500px; height: 500px;
+    background: radial-gradient(circle, rgba(167,139,250,0.06) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .hero-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    width: 100%;
+    animation: fadeUp 0.9s ease both;
+  }
+
+  .hero-tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(110,231,183,0.3);
+    display: inline-block;
+    padding: 0.3rem 0.8rem;
+    border-radius: 2px;
+    margin-bottom: 2rem;
+  }
+
+  .hero h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(3rem, 8vw, 6.5rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero h1 .line2 {
+    -webkit-text-stroke: 1px var(--accent);
+    color: transparent;
+  }
+
+  .hero-desc {
+    font-size: 1.1rem;
+    color: var(--muted);
+    max-width: 560px;
+    line-height: 1.8;
+    margin-bottom: 2.5rem;
+  }
+
+  .hero-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+  }
+  .hero-meta span { color: var(--accent3); }
+
+  .scroll-indicator {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--muted);
+    animation: bounce 2s infinite;
+  }
+  .scroll-indicator::after {
+    content: '↓';
+    font-size: 1rem;
+    color: var(--accent);
+  }
+
+  /* LAYOUT */
+  .container {
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 2rem;
+  }
+
+  /* SECTION DIVIDER */
+  .section-divider {
+    border: none;
+    height: 1px;
+    background: var(--border);
+    margin: 5rem 0;
+  }
+
+  /* SECTION HEADER */
+  .section-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--accent2);
+    margin-bottom: 0.8rem;
+  }
+
+  h2 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    margin-bottom: 0.8rem;
+    color: var(--text);
+  }
+
+  p { color: #94a3b8; margin-bottom: 1.2rem; }
+  p strong { color: var(--text); font-weight: 500; }
+
+  /* CALLOUT BOX */
+  .callout {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    padding: 1.2rem 1.5rem;
+    border-radius: 0 6px 6px 0;
+    margin: 2rem 0;
+  }
+  .callout.purple { border-color: var(--accent2); }
+  .callout.amber { border-color: var(--accent3); }
+  .callout p { margin: 0; color: var(--text); font-size: 0.95rem; }
+  .callout .callout-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 0.5rem;
+  }
+  .callout.purple .callout-label { color: var(--accent2); }
+  .callout.amber .callout-label { color: var(--accent3); }
+
+  /* CODE / MONO BLOCK */
+  .mono-block {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.8rem;
+    color: var(--accent);
+    line-height: 1.8;
+    overflow-x: auto;
+    margin: 2rem 0;
+    white-space: pre;
+  }
+
+  /* COMPARISON TABLE */
+  .compare-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 2rem 0;
+    font-size: 0.88rem;
+    background: var(--surface);
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .compare-table th {
+    background: var(--surface2);
+    font-family: 'Syne', sans-serif;
+    font-weight: 600;
+    padding: 0.9rem 1.2rem;
+    text-align: left;
+    color: var(--text);
+    border-bottom: 1px solid var(--border);
+  }
+  .compare-table td {
+    padding: 0.85rem 1.2rem;
+    border-bottom: 1px solid var(--border);
+    color: #94a3b8;
+    vertical-align: top;
+  }
+  .compare-table tr:last-child td { border-bottom: none; }
+  .compare-table td:first-child { color: var(--text); font-weight: 500; }
+  .compare-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+  /* DB TYPE CARDS */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.2rem;
+    margin: 2.5rem 0;
+  }
+
+  .db-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .db-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .db-card.kv::before { background: linear-gradient(90deg, var(--accent), transparent); }
+  .db-card.doc::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .db-card.col::before { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .db-card.graph::before { background: linear-gradient(90deg, #f87171, transparent); }
+  .db-card.ts::before { background: linear-gradient(90deg, #38bdf8, transparent); }
+  .db-card.vec::before { background: linear-gradient(90deg, #e879f9, transparent); }
+
+  .db-card:hover {
+    border-color: rgba(255,255,255,0.15);
+    transform: translateY(-2px);
+  }
+
+  .db-card-icon {
+    font-size: 1.6rem;
+    margin-bottom: 0.8rem;
+  }
+  .db-card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+  .db-card p { font-size: 0.85rem; margin-bottom: 0.8rem; color: var(--muted); }
+  .db-card .examples {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 0.05em;
+  }
+  .db-card.doc .examples { color: var(--accent2); }
+  .db-card.col .examples { color: var(--accent3); }
+  .db-card.graph .examples { color: #f87171; }
+  .db-card.ts .examples { color: #38bdf8; }
+  .db-card.vec .examples { color: #e879f9; }
+
+  /* CAP TRIANGLE */
+  .cap-visual {
+    margin: 2.5rem 0;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 2rem;
+    text-align: center;
+  }
+  .cap-visual svg { max-width: 360px; width: 100%; }
+  .cap-pills {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-top: 1.5rem;
+  }
+  .cap-pill {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem;
+    padding: 0.4rem 1rem;
+    border-radius: 20px;
+    letter-spacing: 0.1em;
+  }
+  .cap-pill.cp { background: rgba(110,231,183,0.1); color: var(--accent); border: 1px solid rgba(110,231,183,0.3); }
+  .cap-pill.ap { background: rgba(167,139,250,0.1); color: var(--accent2); border: 1px solid rgba(167,139,250,0.3); }
+
+  /* TIMELINE */
+  .timeline { margin: 2.5rem 0; }
+  .tl-item {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+    align-items: start;
+  }
+  .tl-year {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--accent3);
+    padding-top: 0.2rem;
+    text-align: right;
+  }
+  .tl-content {
+    padding-left: 1.5rem;
+    border-left: 1px solid var(--border);
+    position: relative;
+  }
+  .tl-content::before {
+    content: '';
+    position: absolute;
+    left: -4px; top: 8px;
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--accent3);
+  }
+  .tl-content strong { color: var(--text); font-family: 'Syne', sans-serif; font-size: 0.95rem; }
+  .tl-content p { font-size: 0.85rem; margin: 0.3rem 0 0; color: var(--muted); }
+
+  /* SELECTION CRITERIA */
+  .criteria-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin: 2rem 0;
+  }
+  @media (max-width: 600px) { .criteria-grid { grid-template-columns: 1fr; } }
+  .criteria-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1.3rem;
+  }
+  .criteria-num {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent2);
+    letter-spacing: 0.2em;
+    margin-bottom: 0.5rem;
+  }
+  .criteria-card h3 { font-size: 0.95rem; margin-bottom: 0.5rem; }
+  .criteria-card p { font-size: 0.82rem; margin: 0; color: var(--muted); }
+
+  /* USE CASE LIST */
+  .use-case-list { list-style: none; margin: 1.5rem 0; }
+  .use-case-list li {
+    display: flex;
+    gap: 1rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid var(--border);
+    align-items: flex-start;
+    font-size: 0.9rem;
+  }
+  .use-case-list li:last-child { border-bottom: none; }
+  .uc-icon { font-size: 1.2rem; flex-shrink: 0; }
+  .uc-title { font-weight: 500; color: var(--text); display: block; margin-bottom: 0.2rem; font-family: 'Syne', sans-serif; font-size: 0.9rem; }
+  .uc-desc { color: var(--muted); font-size: 0.83rem; }
+
+  /* POLYGLOT */
+  .polyglot-visual {
+    background: #0d0d14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 2rem;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 2;
+    color: var(--text);
+    margin: 2rem 0;
+    overflow-x: auto;
+  }
+  .pl-app { color: var(--accent3); }
+  .pl-rdb { color: #f87171; }
+  .pl-redis { color: var(--accent); }
+  .pl-mongo { color: var(--accent2); }
+  .pl-cass { color: #38bdf8; }
+  .pl-neo { color: #e879f9; }
+
+  /* KEY TAKEAWAY */
+  .takeaway {
+    background: linear-gradient(135deg, rgba(110,231,183,0.05), rgba(167,139,250,0.05));
+    border: 1px solid rgba(110,231,183,0.2);
+    border-radius: 16px;
+    padding: 2.5rem;
+    margin: 4rem 0;
+    text-align: center;
+  }
+  .takeaway h2 {
+    font-size: clamp(1.4rem, 3vw, 1.9rem);
+    margin-bottom: 1rem;
+  }
+  .takeaway p { font-size: 1rem; max-width: 580px; margin: 0 auto; color: #94a3b8; }
+
+  /* FOOTER */
+  footer {
+    border-top: 1px solid var(--border);
+    padding: 3rem 2rem;
+    text-align: center;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  footer span { color: var(--accent); }
+
+  /* ANIMATIONS */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(8px); }
+  }
+
+  .fade-in {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+
+  /* BADGE */
+  .badge {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.65rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    letter-spacing: 0.1em;
+    margin-right: 0.4rem;
+    vertical-align: middle;
+  }
+  .badge-green { background: rgba(110,231,183,0.1); color: var(--accent); }
+  .badge-purple { background: rgba(167,139,250,0.1); color: var(--accent2); }
+  .badge-amber { background: rgba(245,158,11,0.1); color: var(--accent3); }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-inner">
+    <div class="hero-tag">DBS201 · Unit I · Study Blog</div>
+    <h1>
+      Beyond<br>
+      <span class="line2">SQL</span>
+    </h1>
+    <p class="hero-desc">
+      A complete deep-dive into NoSQL databases — what they are, why they exist, the types you need to know, and how to pick the right one. Built from Unit I lecture notes.
+    </p>
+    <div class="hero-meta">
+      Topics covered: <span>NoSQL Overview</span> · <span>CAP Theorem</span> · <span>6 DB Types</span> · <span>Use Cases</span> · <span>Selection Criteria</span>
+    </div>
+  </div>
+  <div class="scroll-indicator">SCROLL</div>
+</section>
+
+<!-- SECTION 1: WHY NOSQL -->
+<section class="container fade-in">
+  <div class="section-label">§ 1.0 — Origin Story</div>
+  <h2>Why Did NoSQL Even Exist?</h2>
+  <p>
+    For three decades, <strong>relational databases ruled</strong> — and for good reason. Edgar F. Codd's relational model (1970) gave us structured tables, ACID transactions, and the elegant power of SQL. Oracle, MySQL, and PostgreSQL became the backbone of virtually every application.
+  </p>
+  <p>
+    Then the internet exploded. Companies like <strong>Google, Amazon, Facebook, and Twitter</strong> emerged with problems RDBMS was simply never designed to solve: billions of users, petabytes of unstructured data, thousands of writes per second, and schemas that needed to change overnight.
+  </p>
+
+  <div class="callout amber">
+    <div class="callout-label">The Breaking Point</div>
+    <p>Facebook was storing <strong>billions of messages</strong>. Twitter handled <strong>thousands of tweets per second</strong>. Google was indexing the <strong>entire web</strong>. RDBMS started cracking under this pressure.</p>
+  </div>
+
+  <p>The core problems at scale were:</p>
+
+  <div class="compare-table" style="margin-top:0;">
+    <table class="compare-table">
+      <tr><th>Problem</th><th>Why it hurt RDBMS</th></tr>
+      <tr><td>Vertical scaling ceiling</td><td>You can only buy a machine so big; horizontal distribution is painful with joins and foreign keys</td></tr>
+      <tr><td>Schema rigidity</td><td>ALTER TABLE on 2 billion rows can lock a table for hours</td></tr>
+      <tr><td>Object-relational mismatch</td><td>Apps work with objects; databases want rows — constant conversion overhead</td></tr>
+      <tr><td>Mismatched data shapes</td><td>Graphs, key-value pairs, time-series — forcing all into tables is unnatural</td></tr>
+    </table>
+  </div>
+
+  <p>So Google wrote <strong>Bigtable (2004)</strong>, Amazon wrote <strong>Dynamo (2007)</strong>, Facebook open-sourced <strong>Cassandra (2008)</strong>. These internal systems became the blueprint for the entire NoSQL movement.</p>
+
+  <div class="callout">
+    <div class="callout-label">The Name</div>
+    <p>The term <strong>"NoSQL"</strong> was coined in 2009 as a Twitter hashtag for a meetup in San Francisco. It stuck. The community now prefers <strong>"Not Only SQL"</strong> — these databases <em>complement</em> relational ones, not replace them.</p>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- SECTION 2: DEFINITION -->
+<section class="container fade-in">
+  <div class="section-label">§ 1.1 — Definition & Characteristics</div>
+  <h2>What Is a NoSQL Database?</h2>
+  <p>
+    <strong>NoSQL databases</strong> are non-relational database systems that store and manage data using flexible schemas and alternative data models — designed for horizontal scalability and high availability in large-scale, distributed applications.
+  </p>
+
+  <div class="cards-grid">
+    <div class="db-card kv" style="border-color: rgba(110,231,183,0.15);">
+      <div class="db-card-icon">⚡</div>
+      <h3>Schema Flexibility</h3>
+      <p>No fixed table structure — records can have different fields. Perfect for fast-evolving requirements.</p>
+    </div>
+    <div class="db-card doc" style="border-color: rgba(167,139,250,0.15);">
+      <div class="db-card-icon">🔀</div>
+      <h3>Non-Relational Model</h3>
+      <p>Data as key-value, documents, wide rows, or graphs instead of normalized tables and joins.</p>
+    </div>
+    <div class="db-card col" style="border-color: rgba(245,158,11,0.15);">
+      <div class="db-card-icon">↔️</div>
+      <h3>Horizontal Scalability</h3>
+      <p>Scale by adding more machines (sharding) rather than upgrading a single server.</p>
+    </div>
+    <div class="db-card graph" style="border-color: rgba(248,113,113,0.15);">
+      <div class="db-card-icon">🌐</div>
+      <h3>Distributed & Fault-Tolerant</h3>
+      <p>Data replicated across nodes and data centers for resilience and availability.</p>
+    </div>
+    <div class="db-card ts" style="border-color: rgba(56,189,248,0.15);">
+      <div class="db-card-icon">⚖️</div>
+      <h3>BASE Over ACID</h3>
+      <p>Trades strong consistency for availability and partition tolerance — Basically Available, Soft state, Eventually consistent.</p>
+    </div>
+  </div>
+
+  <h3>BASE vs ACID</h3>
+  <p>Traditional SQL databases follow <strong>ACID</strong> (Atomicity, Consistency, Isolation, Durability). Most NoSQL systems follow <strong>BASE</strong> — the philosophy of eventually consistent systems.</p>
+
+  <table class="compare-table">
+    <tr><th>Feature</th><th>ACID (SQL)</th><th>BASE (NoSQL)</th></tr>
+    <tr><td>Consistency</td><td>Immediate / Strong</td><td>Eventual</td></tr>
+    <tr><td>Availability</td><td>Sacrificed for accuracy</td><td>Highest priority</td></tr>
+    <tr><td>Scalability</td><td>Vertical (bigger servers)</td><td>Horizontal (more servers)</td></tr>
+    <tr><td>Best for</td><td>Financial transactions</td><td>Social media, Big Data</td></tr>
+  </table>
+
+  <div class="callout purple">
+    <div class="callout-label">Analogy</div>
+    <p>RDBMS is like a highly regulated library with strict catalog rules. NoSQL is like a dynamic warehouse optimized to quickly grab items in bulk — sometimes sacrificing strict cataloging for speed.</p>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- SECTION 3: CAP THEOREM -->
+<section class="container fade-in">
+  <div class="section-label">§ 1.1.3 — CAP Theorem</div>
+  <h2>The CAP Theorem</h2>
+  <p>
+    Proposed by <strong>Eric Brewer in 2000</strong> and formally proven by Gilbert & Lynch in 2002, the CAP Theorem states: in a distributed data store, it is <em>impossible</em> to simultaneously guarantee all three of the following:
+  </p>
+
+  <div class="cap-visual">
+    <svg viewBox="0 0 360 300" xmlns="http://www.w3.org/2000/svg">
+      <!-- Triangle -->
+      <polygon points="180,30 30,270 330,270" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+      <!-- Sides glow -->
+      <line x1="180" y1="30" x2="30" y2="270" stroke="url(#g1)" stroke-width="2"/>
+      <line x1="180" y1="30" x2="330" y2="270" stroke="url(#g2)" stroke-width="2"/>
+      <line x1="30" y1="270" x2="330" y2="270" stroke="url(#g3)" stroke-width="2"/>
+      <defs>
+        <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#6ee7b7" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.8"/>
+        </linearGradient>
+        <linearGradient id="g2" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#6ee7b7" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.8"/>
+        </linearGradient>
+        <linearGradient id="g3" x1="0%" y1="100%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#a78bfa" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.8"/>
+        </linearGradient>
+      </defs>
+      <!-- Vertices -->
+      <circle cx="180" cy="30" r="5" fill="#6ee7b7"/>
+      <circle cx="30" cy="270" r="5" fill="#a78bfa"/>
+      <circle cx="330" cy="270" r="5" fill="#f59e0b"/>
+      <!-- Labels -->
+      <text x="180" y="16" text-anchor="middle" fill="#6ee7b7" font-family="Space Mono, monospace" font-size="11" font-weight="700">CONSISTENCY</text>
+      <text x="12" y="290" text-anchor="middle" fill="#a78bfa" font-family="Space Mono, monospace" font-size="10" font-weight="700">AVAILABILITY</text>
+      <text x="348" y="290" text-anchor="end" fill="#f59e0b" font-family="Space Mono, monospace" font-size="10" font-weight="700">PARTITION</text>
+      <text x="348" y="303" text-anchor="end" fill="#f59e0b" font-family="Space Mono, monospace" font-size="10" font-weight="700">TOLERANCE</text>
+      <!-- CP label -->
+      <text x="118" y="155" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-family="Space Mono, monospace" font-size="9">CP Systems</text>
+      <!-- AP label -->
+      <text x="248" y="155" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-family="Space Mono, monospace" font-size="9">AP Systems</text>
+      <!-- Center note -->
+      <text x="180" y="200" text-anchor="middle" fill="rgba(255,255,255,0.18)" font-family="Space Mono, monospace" font-size="8">Pick any 2</text>
+    </svg>
+
+    <div class="cap-pills">
+      <span class="cap-pill cp">CP — HBase, Zookeeper</span>
+      <span class="cap-pill ap">AP — Cassandra, CouchDB</span>
+    </div>
+  </div>
+
+  <p>In real-world distributed systems, <strong>P (Partition Tolerance) is non-negotiable</strong> — networks will fail. So the real choice is always between Consistency and Availability:</p>
+
+  <table class="compare-table">
+    <tr><th>Choice</th><th>Behavior During Partition</th><th>Example Systems</th></tr>
+    <tr><td><span class="badge badge-green">CP</span>Consistency + Partition Tolerance</td><td>Returns an error or blocks until partition heals — sacrifices availability</td><td>HBase, Zookeeper, MongoDB (strong mode)</td></tr>
+    <tr><td><span class="badge badge-purple">AP</span>Availability + Partition Tolerance</td><td>Returns responses even if not all replicas agree — eventual consistency</td><td>Cassandra, CouchDB, DynamoDB</td></tr>
+  </table>
+
+  <div class="callout">
+    <div class="callout-label">Real-world example of Eventual Consistency</div>
+    <p>When you add someone on Instagram, your friend count might update immediately on your screen but take a few seconds to reflect on theirs. Both nodes will <em>eventually</em> agree — this is an AP system in action.</p>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- SECTION 4: TYPES -->
+<section class="container fade-in">
+  <div class="section-label">§ 1.2 — Types of NoSQL Databases</div>
+  <h2>The Six Types You Must Know</h2>
+  <p>NoSQL isn't a single thing — it's a family of different data models, each optimized for a specific shape of data and query pattern.</p>
+
+  <div class="cards-grid">
+    <div class="db-card kv">
+      <div class="db-card-icon">🗝️</div>
+      <h3>Key-Value Stores</h3>
+      <p>The simplest model: data stored as <code>(key, value)</code> pairs where the key is unique. Think of it as a distributed hash map with persistent storage.</p>
+      <p><strong>Best for:</strong> Caching, session storage, feature flags, leaderboards.</p>
+      <div class="examples">Redis · DynamoDB · Riak</div>
+    </div>
+
+    <div class="db-card doc">
+      <div class="db-card-icon">📄</div>
+      <h3>Document Databases</h3>
+      <p>Store data as JSON/BSON documents in collections. Each document can have nested fields, arrays, and embedded objects with rich querying.</p>
+      <p><strong>Best for:</strong> User profiles, content management, product catalogs, event logs.</p>
+      <div class="examples">MongoDB · CouchDB</div>
+    </div>
+
+    <div class="db-card col">
+      <div class="db-card-icon">📊</div>
+      <h3>Column-Family Stores</h3>
+      <p>Also called wide-column stores. Rows can have different columns; storage is optimized for write-heavy workloads. Data modeling is query-driven.</p>
+      <p><strong>Best for:</strong> Time-series data, IoT metrics, large-scale analytics, logging.</p>
+      <div class="examples">Cassandra · HBase</div>
+    </div>
+
+    <div class="db-card graph">
+      <div class="db-card-icon">🕸️</div>
+      <h3>Graph Databases</h3>
+      <p>Store data as nodes (entities) and edges (relationships), both with properties. Traversals are first-class operations — like a network diagram stored directly in the DB.</p>
+      <p><strong>Best for:</strong> Social networks, fraud detection, recommendation engines.</p>
+      <div class="examples">Neo4j · Amazon Neptune</div>
+    </div>
+
+    <div class="db-card ts">
+      <div class="db-card-icon">📈</div>
+      <h3>Time-Series Databases</h3>
+      <p>Optimized for data points indexed by timestamp. High write throughput, downsampling, and retention policies built in.</p>
+      <p><strong>Best for:</strong> System monitoring, IoT sensors, financial tick data.</p>
+      <div class="examples">InfluxDB · TimescaleDB · Prometheus</div>
+    </div>
+
+    <div class="db-card vec">
+      <div class="db-card-icon">🤖</div>
+      <h3>Vector Databases</h3>
+      <p>Store high-dimensional vectors (ML embeddings) and enable similarity search using cosine distance or Euclidean distance. The newest member of the family.</p>
+      <p><strong>Best for:</strong> Semantic search, RAG, image similarity, AI/ML applications.</p>
+      <div class="examples">Pinecone · Milvus · Weaviate</div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- SECTION 5: HISTORY TIMELINE -->
+<section class="container fade-in">
+  <div class="section-label">§ History — Timeline</div>
+  <h2>How We Got Here</h2>
+
+  <div class="timeline">
+    <div class="tl-item">
+      <div class="tl-year">1970</div>
+      <div class="tl-content">
+        <strong>Edgar F. Codd's Relational Model</strong>
+        <p>The foundation of RDBMS — tables, rows, and SQL. Rules the industry for 30+ years.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2000</div>
+      <div class="tl-content">
+        <strong>CAP Theorem — Eric Brewer</strong>
+        <p>The theoretical groundwork for understanding distributed system trade-offs. Formally proven in 2002.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2004</div>
+      <div class="tl-content">
+        <strong>Google Bigtable & MapReduce Papers</strong>
+        <p>Internal Google systems that inspired HBase, Cassandra, and the Hadoop ecosystem.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2007</div>
+      <div class="tl-content">
+        <strong>Amazon Dynamo Paper</strong>
+        <p>Amazon's internal key-value store — inspired Cassandra, Riak, and DynamoDB.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">2008–09</div>
+      <div class="tl-content">
+        <strong>The Open-Source Explosion</strong>
+        <p>Cassandra (Facebook), MongoDB, Redis, HBase all launch or are open-sourced. The #NoSQL hashtag is coined at a San Francisco meetup in 2009.</p>
+      </div>
+    </div>
+    <div class="tl-item">
+      <div class="tl-year">Today</div>
+      <div class="tl-content">
+        <strong>Polyglot Persistence is the Norm</strong>
+        <p>Modern applications use multiple databases for different needs — the right tool for the right job.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- SECTION 6: USE CASES -->
+<section class="container fade-in">
+  <div class="section-label">§ 1.3 — Use Cases & Applications</div>
+  <h2>Where NoSQL Shines</h2>
+
+  <ul class="use-case-list">
+    <li>
+      <span class="uc-icon">🗄️</span>
+      <div>
+        <span class="uc-title">Big Data Processing</span>
+        <span class="uc-desc">Column-family stores like Cassandra and HBase handle billions of events with high write throughput. Combined with Spark or Hadoop for analytics on petabyte-scale data with the 3Vs: Volume, Velocity, Variety.</span>
+      </div>
+    </li>
+    <li>
+      <span class="uc-icon">⚡</span>
+      <div>
+        <span class="uc-title">Real-Time Web Applications</span>
+        <span class="uc-desc">Redis for session caching and leaderboards, MongoDB for user profiles and feeds, Neo4j for real-time recommendations. A social media platform might use all three simultaneously.</span>
+      </div>
+    </li>
+    <li>
+      <span class="uc-icon">📰</span>
+      <div>
+        <span class="uc-title">Content Management Systems (CMS)</span>
+        <span class="uc-desc">Document databases fit perfectly — each article or page as a JSON document with flexible fields like title, body, tags, metadata. Schemas evolve without painful migrations.</span>
+      </div>
+    </li>
+    <li>
+      <span class="uc-icon">🌡️</span>
+      <div>
+        <span class="uc-title">Internet of Things (IoT)</span>
+        <span class="uc-desc">Smart city sensors, industrial equipment, wearables — continuously streaming time-stamped data. Time-series databases handle the bursty, high-throughput writes and enable time-window dashboards and alerts.</span>
+      </div>
+    </li>
+  </ul>
+</section>
+
+<hr class="section-divider">
+
+<!-- SECTION 7: SELECTION CRITERIA -->
+<section class="container fade-in">
+  <div class="section-label">§ 1.4 — Selection Criteria</div>
+  <h2>How to Pick the Right NoSQL</h2>
+  <p>Always anchor your selection around four key questions — in exams and in real design work.</p>
+
+  <div class="criteria-grid">
+    <div class="criteria-card">
+      <div class="criteria-num">01 · DATA SHAPE</div>
+      <h3>Data Structure & Access Patterns</h3>
+      <p>What does your data look like? Only key lookups → KV store. Nested JSON → Document. Rich relationships → Graph. Timestamps + metrics → Time-series. ML embeddings → Vector.</p>
+    </div>
+    <div class="criteria-card">
+      <div class="criteria-num">02 · SCALE</div>
+      <h3>Scalability Requirements</h3>
+      <p>Expected volume (GB/TB/PB)? Read vs write ratio? Global distribution? Very high write throughput at scale → Column-family. Read-heavy → add a KV cache on top.</p>
+    </div>
+    <div class="criteria-card">
+      <div class="criteria-num">03 · CORRECTNESS</div>
+      <h3>Consistency Needs</h3>
+      <p>Strong consistency needed (banking, inventory) → CP systems. Eventual consistency acceptable (likes, view counts, social feeds) → AP systems. Many NoSQL offer tunable consistency per operation.</p>
+    </div>
+    <div class="criteria-card">
+      <div class="criteria-num">04 · OPERATIONS</div>
+      <h3>Ecosystem & Tooling</h3>
+      <p>Driver support for your language stack, managed cloud services (Atlas, hosted Redis), monitoring dashboards, backup utilities, and community documentation all matter in production.</p>
+    </div>
+  </div>
+
+  <div class="callout purple">
+    <div class="callout-label">Exam Tip</div>
+    <p>In design questions, always explicitly state: "Given the <strong>data shape</strong> of X, <strong>access pattern</strong> Y, and <strong>consistency requirement</strong> Z, the most suitable model is…" — this structure gets full marks.</p>
+  </div>
+</section>
+
+<hr class="section-divider">
+
+<!-- SECTION 8: POLYGLOT -->
+<section class="container fade-in">
+  <div class="section-label">§ Modern Architecture</div>
+  <h2>Polyglot Persistence</h2>
+  <p>
+    Today, the industry has settled on a <strong>polyglot persistence</strong> approach — a single application may use multiple databases, each chosen for the specific workload it handles best.
+  </p>
+
+  <div class="polyglot-visual">
+<span class="pl-app">YourApplication</span>
+      │
+      ├── <span class="pl-rdb">PostgreSQL</span>    →  Transactional financial data (ACID)
+      ├── <span class="pl-redis">Redis</span>         →  Caching, sessions, rate limiting
+      ├── <span class="pl-mongo">MongoDB</span>       →  Flexible user profiles &amp; content
+      ├── <span class="pl-cass">Cassandra</span>     →  Time-series event logs at scale
+      └── <span class="pl-neo">Neo4j</span>         →  Recommendation graphs
+  </div>
+
+  <p>Understanding <strong>when</strong> and <strong>why</strong> to use each database is one of the most valuable skills a modern software engineer can have.</p>
+</section>
+
+<!-- TAKEAWAY -->
+<section class="container fade-in">
+  <div class="takeaway">
+    <h2>The Core Lesson</h2>
+    <p>
+      NoSQL wasn't born out of ideology — it was born out of <strong>necessity</strong>. When the internet scaled to billions of users and petabytes of unstructured data, relational databases became the bottleneck. NoSQL doesn't replace SQL — it <strong>expands your toolkit</strong> so you can pick the right database for the right problem.
+    </p>
+  </div>
+</section>
+
+<!-- QUICK REVISION -->
+<section class="container fade-in">
+  <div class="section-label">§ Exam Prep — Quick Revision</div>
+  <h2>Revision Bullets</h2>
+
+  <div class="mono-block">• NoSQL = non-relational, schema-flexible, horizontally scalable, distributed, BASE-oriented
+
+• 6 types: key-value, document, column-family, graph, time-series, vector
+
+• CAP: distributed systems must choose C or A when P (partition) occurs
+  → CP: consistent but may timeout during partition
+  → AP: always responds but may return stale data
+
+• Common use cases:
+  - Big data    → Column-family (Cassandra / HBase)
+  - Real-time   → Key-value cache (Redis)
+  - CMS / Feeds → Document store (MongoDB)
+  - IoT sensors → Time-series (InfluxDB)
+  - AI search   → Vector DB (Pinecone / Milvus)
+
+• Selection: Data shape + Query pattern + Scale + Consistency + Tooling</div>
+</section>
+
+<footer>
+  <p>DBS201 · Unit I: Introduction to NoSQL Databases · <span>Study Notes Blog</span></p>
+  <p style="margin-top:0.5rem; font-size: 0.6rem;">Based on course materials · For academic reference</p>
+</footer>
+
+<script>
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) e.target.classList.add('visible');
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>

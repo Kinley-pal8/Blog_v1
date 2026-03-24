@@ -1,0 +1,79 @@
+# ==================
+# Dependencies
+# ==================
+node_modules/
+.pnp
+.pnp.js
+package-lock.json
+yarn.lock
+
+# ==================
+# Build & Output
+# ==================
+.next/
+out/
+build/
+dist/
+
+# ==================
+# Environment Files (NEVER commit secrets!)
+# ==================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.*.local
+
+# ==================
+# Logs & Debugging
+# ==================
+npm-debug.log*
+npm-error.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# ==================
+# Testing & Coverage
+# ==================
+coverage/
+.nyc_output/
+
+# ==================
+# IDE & Editor
+# ==================
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+.c9/
+*.launch
+.settings/
+*.sublime-workspace
+
+# ==================
+# OS Files
+# ==================
+Thumbs.db
+.DS_Store
+.env.swp
+.env.local.swp
+ehthumbs.db
+
+# ==================
+# Misc
+# ==================
+*.pem
+*.key
+*.crt
+.cache/
+.vscode-test
+.history/
