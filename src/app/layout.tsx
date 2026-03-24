@@ -7,6 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "KP",
   description: "Portfolio and blog",
+  viewport: "width=device-width, initial-scale=1",
 };
 
 export default function RootLayout({
@@ -20,7 +21,7 @@ export default function RootLayout({
         <body className="transition-colors duration-300">
           <ThemeProvider>
             <Sidebar />
-            <main className="ml-48 lg:ml-48 md:ml-0 min-h-screen">
+            <main className="pt-16 md:pt-18 lg:pt-20 min-h-screen">
               {children}
             </main>
           </ThemeProvider>
