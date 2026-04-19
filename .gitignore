@@ -48,6 +48,11 @@ coverage/
 .idea/
 .DS_Store
 *.swp
+
+# ==================
+# Source Files
+# ==================
+unit2-redis-blog.md
 *.swo
 *~
 *.sublime-project

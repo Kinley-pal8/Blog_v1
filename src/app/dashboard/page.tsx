@@ -171,6 +171,8 @@ function OverviewTab() {
 function ManagePostsTab() {
   const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<any>({});
 
   useEffect(() => {
     fetchPosts();
@@ -219,6 +221,46 @@ function ManagePostsTab() {
     }
   }
 
+  function startEdit(post: any) {
+    setEditingId(post.id);
+    setEditForm({
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      content: post.content,
+      tags: post.tags || [],
+    });
+  }
+
+  async function saveEdit() {
+    if (!editingId) return;
+
+    try {
+      const res = await fetch(`/api/posts/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setPosts(posts.map((p) => (p.id === editingId ? updated : p)));
+        setEditingId(null);
+        alert("Post updated successfully!");
+      } else {
+        alert("Failed to update post");
+      }
+    } catch (error) {
+      console.error("Error updating post:", error);
+      alert("Error updating post");
+    }
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditForm({});
+  }
+
   if (loading)
     return (
       <div className="text-slate-600 dark:text-slate-400">Loading posts...</div>
@@ -232,72 +274,164 @@ function ManagePostsTab() {
       {posts.length === 0 ? (
         <p className="text-slate-600 dark:text-slate-400">No posts yet</p>
       ) : (
-        <div className="overflow-x-auto border border-slate-200 dark:border-slate-700">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
-                <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
-                  Title
-                </th>
-                <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
-                  Author
-                </th>
-                <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
-                  Status
-                </th>
-                <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
-                  Date
-                </th>
-                <th className="text-right py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {posts.map((post) => (
-                <tr
-                  key={post.id}
-                  className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                >
-                  <td className="py-4 px-6 text-slate-900 dark:text-slate-50">
-                    {post.title}
-                  </td>
-                  <td className="py-4 px-6 text-slate-600 dark:text-slate-400">
-                    {post.author_email || "Unknown"}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span
-                      className={`px-3 py-1 text-xs font-light tracking-wide ${
-                        post.published
-                          ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-50 border border-slate-300 dark:border-slate-600"
-                          : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
-                      }`}
-                    >
-                      {post.published ? "PUBLISHED" : "DRAFT"}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6 text-slate-600 dark:text-slate-400">
-                    {new Date(post.created_at).toLocaleDateString()}
-                  </td>
-                  <td className="py-4 px-6 text-right space-x-4">
-                    <button
-                      onClick={() => togglePublish(post.id, post.published)}
-                      className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 text-xs font-light tracking-wide uppercase transition-colors"
-                    >
-                      {post.published ? "Unpublish" : "Publish"}
-                    </button>
-                    <button
-                      onClick={() => deletePost(post.id)}
-                      className="text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 text-xs font-light tracking-wide uppercase transition-colors"
-                    >
-                      Delete
-                    </button>
-                  </td>
+        <>
+          <div className="overflow-x-auto border border-slate-200 dark:border-slate-700">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                  <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
+                    Title
+                  </th>
+                  <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
+                    Author
+                  </th>
+                  <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
+                    Status
+                  </th>
+                  <th className="text-left py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
+                    Date
+                  </th>
+                  <th className="text-right py-4 px-6 font-light text-slate-700 dark:text-slate-300 tracking-wide uppercase text-xs">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {posts.map((post) => (
+                  <tr
+                    key={post.id}
+                    className="border-b border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    <td className="py-4 px-6 text-slate-900 dark:text-slate-50">
+                      {post.title}
+                    </td>
+                    <td className="py-4 px-6 text-slate-600 dark:text-slate-400">
+                      {post.author_email || "Unknown"}
+                    </td>
+                    <td className="py-4 px-6">
+                      <span
+                        className={`px-3 py-1 text-xs font-light tracking-wide ${
+                          post.published
+                            ? "bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-50 border border-slate-300 dark:border-slate-600"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-400 border border-slate-200 dark:border-slate-700"
+                        }`}
+                      >
+                        {post.published ? "PUBLISHED" : "DRAFT"}
+                      </span>
+                    </td>
+                    <td className="py-4 px-6 text-slate-600 dark:text-slate-400">
+                      {new Date(post.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="py-4 px-6 text-right space-x-4">
+                      <button
+                        onClick={() => startEdit(post)}
+                        className="text-blue-600 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 text-xs font-light tracking-wide uppercase transition-colors"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => togglePublish(post.id, post.published)}
+                        className="text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 text-xs font-light tracking-wide uppercase transition-colors"
+                      >
+                        {post.published ? "Unpublish" : "Publish"}
+                      </button>
+                      <button
+                        onClick={() => deletePost(post.id)}
+                        className="text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 text-xs font-light tracking-wide uppercase transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Edit Modal */}
+          {editingId && (
+            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto p-8">
+                <h3 className="text-2xl font-light mb-6 text-slate-900 dark:text-slate-50">
+                  Edit Post
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-light text-slate-700 dark:text-slate-300 mb-2">
+                      Title
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.title || ""}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, title: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-light text-slate-700 dark:text-slate-300 mb-2">
+                      Slug
+                    </label>
+                    <input
+                      type="text"
+                      value={editForm.slug || ""}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, slug: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-light text-slate-700 dark:text-slate-300 mb-2">
+                      Excerpt
+                    </label>
+                    <textarea
+                      value={editForm.excerpt || ""}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, excerpt: e.target.value })
+                      }
+                      rows={2}
+                      className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-light text-slate-700 dark:text-slate-300 mb-2">
+                      Content
+                    </label>
+                    <textarea
+                      value={editForm.content || ""}
+                      onChange={(e) =>
+                        setEditForm({ ...editForm, content: e.target.value })
+                      }
+                      rows={4}
+                      className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-50 font-mono text-xs"
+                    />
+                  </div>
+
+                  <div className="flex gap-4 mt-8">
+                    <button
+                      onClick={saveEdit}
+                      className="flex-1 px-4 py-2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded font-light tracking-wide uppercase text-sm transition-colors hover:bg-slate-800 dark:hover:bg-slate-200"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      onClick={cancelEdit}
+                      className="flex-1 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-slate-50 rounded font-light tracking-wide uppercase text-sm transition-colors hover:bg-slate-300 dark:hover:bg-slate-600"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

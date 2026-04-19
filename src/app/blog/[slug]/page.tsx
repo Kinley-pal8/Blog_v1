@@ -88,7 +88,23 @@ function renderMarkdownWithLightTheme(markdown: string): string {
 
   html = processedHtml;
 
+  // PROCESS CODE BLOCKS FIRST (protect from heading/list/etc parsing)
+  const codeBlockPlaceholders: { [key: string]: string } = {};
+  let codeBlockIndex = 0;
+  html = html.replace(/```(.*?)```/gs, (match, content) => {
+    const placeholder = `__CODE_BLOCK_${codeBlockIndex}__`;
+    const trimmed = content.trim();
+    codeBlockPlaceholders[placeholder] =
+      `<pre class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 my-6 overflow-x-auto"><code class="text-sm md:text-base text-slate-900 dark:text-slate-100 font-mono leading-relaxed font-light">${trimmed.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+    codeBlockIndex++;
+    return placeholder;
+  });
+
   // Headings with light theme and better spacing
+  html = html.replace(
+    /^#### (.*?)$/gm,
+    '<h4 class="text-base md:text-lg font-semibold tracking-wide mt-8 mb-3 text-slate-900 dark:text-slate-50 flex items-start gap-3"><span class="text-slate-400 dark:text-slate-600 font-light">▪</span>$1</h4>',
+  );
   html = html.replace(
     /^### (.*?)$/gm,
     '<h3 class="text-lg md:text-xl font-semibold tracking-wide mt-10 mb-4 text-slate-900 dark:text-slate-50 flex items-start gap-3"><span class="text-slate-400 dark:text-slate-600 font-light">▸</span>$1</h3>',
@@ -128,10 +144,9 @@ function renderMarkdownWithLightTheme(markdown: string): string {
     '<em class="italic text-slate-700 dark:text-slate-300">$1</em>',
   );
 
-  // Code blocks
-  html = html.replace(/```(.*?)```/gs, (match, content) => {
-    const trimmed = content.trim();
-    return `<pre class="bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg p-6 my-6 overflow-x-auto"><code class="text-sm md:text-base text-slate-900 dark:text-slate-100 font-mono leading-relaxed font-light">${trimmed.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</code></pre>`;
+  // Restore code blocks
+  Object.entries(codeBlockPlaceholders).forEach(([placeholder, code]) => {
+    html = html.replace(placeholder, code);
   });
 
   // Inline code
@@ -147,13 +162,19 @@ function renderMarkdownWithLightTheme(markdown: string): string {
   );
 
   // Lists with better styling
+  // Handle numbered lists
+  html = html.replace(
+    /^\d+\. (.*?)$/gm,
+    '<li class="ml-0 my-3 text-sm md:text-base text-slate-700 dark:text-slate-300 flex items-start gap-3 font-light"><span class="text-slate-400 dark:text-slate-600 font-light mt-1 flex-shrink-0">▸</span><span>$1</span></li>',
+  );
+  // Handle bullet lists
   html = html.replace(
     /^\* (.*?)$/gm,
-    '<li class="ml-0 my-3 text-sm md:text-base text-slate-700 dark:text-slate-300 flex items-start gap-3 font-light"><span class="text-slate-400 dark:text-slate-600 font-bold mt-1 flex-shrink-0">◆</span><span>$1</span></li>',
+    '<li class="ml-0 my-3 text-sm md:text-base text-slate-700 dark:text-slate-300 flex items-start gap-3 font-light"><span class="text-slate-400 dark:text-slate-600 font-light mt-1 flex-shrink-0">▸</span><span>$1</span></li>',
   );
   html = html.replace(
     /^- (.*?)$/gm,
-    '<li class="ml-0 my-3 text-sm md:text-base text-slate-700 dark:text-slate-300 flex items-start gap-3 font-light"><span class="text-slate-400 dark:text-slate-600 font-bold mt-1 flex-shrink-0">◆</span><span>$1</span></li>',
+    '<li class="ml-0 my-3 text-sm md:text-base text-slate-700 dark:text-slate-300 flex items-start gap-3 font-light"><span class="text-slate-400 dark:text-slate-600 font-light mt-1 flex-shrink-0">▸</span><span>$1</span></li>',
   );
 
   const listRegex = /(<li>.*?<\/li>)/s;
