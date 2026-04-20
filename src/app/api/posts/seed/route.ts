@@ -259,7 +259,8 @@ NoSQL wasn't born out of ideology — it was born out of **necessity**. When the
     const redisPost = {
       title: "Unit 2: High-Performance Redis - A Deep Dive",
       slug: "redis-unit-2",
-      excerpt: "Redis is more than a cache. It's an in-memory data structure store designed for extreme speed and low latency. Understanding Redis deeply means understanding its architecture, its rich data structures, and how it achieves reliability at scale.",
+      excerpt:
+        "Redis is more than a cache. It's an in-memory data structure store designed for extreme speed and low latency. Understanding Redis deeply means understanding its architecture, its rich data structures, and how it achieves reliability at scale.",
       content: `# Unit 2: High-Performance Redis - A Deep Dive
 
 > Redis is a masterpiece of "less is more" - a system that achieves extraordinary performance by not adding complexity, but by ruthlessly eliminating it.
@@ -307,11 +308,11 @@ Redis replaces all of this with a queue. The CPU cache stays "warm," and there's
 
 ### Little's Law & Redis Efficiency
 
-Redis's efficiency is grounded in **Little's Law** - L = λW:
+Redis's efficiency is grounded in **Little's Law** - L = λW (average items = arrival rate × wait time):
 
-> To maximize throughput (λ), minimize wait time (W).
+> To maximize throughput, minimize wait time.
 
-By eliminating context switching and locking, Redis keeps W ≈ 0, allowing extremely high arrival rates without resource exhaustion.
+By eliminating context switching and locking, Redis keeps wait time ≈ 0, allowing extremely high arrival rates without resource exhaustion.
 
 ### Redis 6.0+: I/O Threads
 
@@ -566,7 +567,13 @@ Redis rewards engineers who understand its internals. The more you work with it,
       cover_image_url:
         "https://images.unsplash.com/photo-1633356122544-f134324ef6db?w=1200&h=600&fit=crop",
       cover_image_alt: "Redis Database Architecture",
-      tags: ["Redis", "In-Memory Database", "Architecture", "Performance", "DBS302"],
+      tags: [
+        "Redis",
+        "In-Memory Database",
+        "Architecture",
+        "Performance",
+        "DBS302",
+      ],
       published: true,
       author_name: "KP",
       author_email: "02230287.cst@rub.edu.bt",
@@ -576,7 +583,10 @@ Redis rewards engineers who understand its internals. The more you work with it,
     const redisResult = await createPost(redisPost);
 
     if (!noSQLResult && !redisResult) {
-      return Response.json({ error: "Failed to create posts" }, { status: 500 });
+      return Response.json(
+        { error: "Failed to create posts" },
+        { status: 500 },
+      );
     }
 
     const createdPosts = [];
