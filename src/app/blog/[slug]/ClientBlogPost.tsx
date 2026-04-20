@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getPostBySlug } from "@/lib/blog-data";
+import { getPostBySlug, Post } from "@/lib/blog-data";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -17,19 +17,21 @@ function renderMarkdownWithLightTheme(markdown: string): string {
   // PROTECT MATH EXPRESSIONS FIRST (before any other replacements)
   const mathPlaceholders: { [key: string]: string } = {};
   let mathIndex = 0;
-  
+
   // Block math: $$ ... $$
   html = html.replace(/\$\$(.*?)\$\$/gs, (match, content) => {
     const placeholder = `__MATH_BLOCK_${mathIndex}__`;
-    mathPlaceholders[placeholder] = `<div class="my-6 overflow-x-auto flex justify-center"><div class="inline-block math-block">${content.trim()}</div></div>`;
+    mathPlaceholders[placeholder] =
+      `<div class="my-6 overflow-x-auto flex justify-center"><div class="inline-block math-block">${content.trim()}</div></div>`;
     mathIndex++;
     return placeholder;
   });
-  
+
   // Inline math: $...$
   html = html.replace(/\$([^\$]+)\$/g, (match, content) => {
     const placeholder = `__MATH_INLINE_${mathIndex}__`;
-    mathPlaceholders[placeholder] = `<span class="inline-math">${content}</span>`;
+    mathPlaceholders[placeholder] =
+      `<span class="inline-math">${content}</span>`;
     mathIndex++;
     return placeholder;
   });
@@ -149,14 +151,11 @@ function renderMarkdownWithLightTheme(markdown: string): string {
 
   // Images with markdown syntax ![alt](url) - first image uses eager loading for LCP optimization
   let imageCount = 0;
-  html = html.replace(
-    /!\[(.*?)\]\((.*?)\)/g,
-    (match, alt, url) => {
-      const loadingAttr = imageCount === 0 ? 'eager' : 'lazy';
-      imageCount++;
-      return `<figure class="my-10 rounded-lg overflow-hidden shadow-sm"><img src="${url}" alt="${alt}" class="w-full h-auto object-cover rounded-lg" loading="${loadingAttr}" /><figcaption class="text-sm text-slate-600 dark:text-slate-400 mt-3 italic">${alt}</figcaption></figure>`;
-    },
-  );
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, url) => {
+    const loadingAttr = imageCount === 0 ? "eager" : "lazy";
+    imageCount++;
+    return `<figure class="my-10 rounded-lg overflow-hidden shadow-sm"><img src="${url}" alt="${alt}" class="w-full h-auto object-cover rounded-lg" loading="${loadingAttr}" /><figcaption class="text-sm text-slate-600 dark:text-slate-400 mt-3 italic">${alt}</figcaption></figure>`;
+  });
 
   // Bold and italic
   html = html.replace(
@@ -231,17 +230,21 @@ function renderMarkdownWithLightTheme(markdown: string): string {
   return html;
 }
 
-// Client component to handle KaTeX rendering  
+// Client component to handle KaTeX rendering
 function BlogContent({ html }: { html: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (ref.current && typeof window !== 'undefined' && (window as any).renderMathInElement) {
+    if (
+      ref.current &&
+      typeof window !== "undefined" &&
+      (window as any).renderMathInElement
+    ) {
       (window as any).renderMathInElement(ref.current, {
         delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ]
+          { left: "$$", right: "$$", display: true },
+          { left: "$", right: "$", display: false },
+        ],
       });
     }
   }, [html]);
@@ -256,7 +259,7 @@ function BlogContent({ html }: { html: string }) {
 }
 
 export default function ClientBlogPost({ slug }: ClientBlogPostProps) {
-  const [post, setPost] = useState<any>(null);
+  const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -268,7 +271,7 @@ export default function ClientBlogPost({ slug }: ClientBlogPostProps) {
         }
         setPost(data);
       } catch (error) {
-        console.error('Error fetching post:', error);
+        console.error("Error fetching post:", error);
         notFound();
       } finally {
         setLoading(false);
