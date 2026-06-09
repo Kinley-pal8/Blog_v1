@@ -53,6 +53,8 @@ coverage/
 # Source Files
 # ==================
 unit2-redis-blog.md
+cassandra.md
+mongodb.md
 *.swo
 *~
 *.sublime-project

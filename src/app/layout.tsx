@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { ThemeProvider } from "@/lib/theme";
 import { Sidebar } from "@/components/Sidebar";
@@ -7,7 +7,11 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "KP",
   description: "Portfolio and blog",
-  viewport: "width=device-width, initial-scale=1",
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
